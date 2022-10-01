@@ -1,0 +1,82 @@
+#version 440 core
+
+layout (quads, equal_spacing, ccw) in;
+
+//uniform mat4  M;
+//uniform mat4  V;
+//uniform mat4  P;
+
+//in  vec3 ContNormal[];
+//out vec3 EvalNormal;
+
+uniform sampler2D Noise;
+
+uniform vec3 PlaneNormal;
+uniform vec2 MinXY;
+
+
+#define M_PI		3.14159265358979323846
+
+
+//----------------------------------------------------------------------------
+
+float
+Hanning( vec2 p )
+{
+    p -= 0.5; // map unit square to [-.5, .5]
+
+    float r = length( p );
+
+    r = cos( M_PI * r / 2.0 );
+    r *= r;
+
+    return r;
+}
+
+//----------------------------------------------------------------------------
+
+vec3 Multiply(vec3 a,vec3 b){
+     return vec3(a.x * b.x , a.y * b.y , a.z * b.z);
+}
+
+
+void
+main()
+{
+    float u = gl_TessCoord.x;
+    float v = gl_TessCoord.y;
+
+    #define p(i)  gl_in[i].gl_Position
+
+    vec4 pos = vec4(0.0, 0.0, 0.0, 1.0);//pos第四个分量为w
+
+    pos.z = Hanning( gl_TessCoord.xy );
+    
+    //gl_Position = P *V * M * pos;
+
+    //pos.xyz = gl_TessCoord.xyz;
+    //pos.z  = gl_TessCoord.z;
+
+    vec2 TexCoord;
+
+    pos.x = p(0).x + gl_TessCoord.x;
+    pos.y = p(0).y + gl_TessCoord.y;
+
+    pos.z = 0;
+
+    TexCoord.x = (pos.x  + 1.0f) /(2.0f);
+    TexCoord.y = (pos.y  + 1.0f) /(2.0f);
+
+    //TexCoord.x =  pos.x;
+    //TexCoord.y =  pos.y;
+
+    vec3 LocalVertexOffset = Multiply(PlaneNormal , texture(Noise, TexCoord).rgb);
+    
+    //pos.z = pos.z +  PlaneNormal.z * texture(Noise, TexCoord).b;
+
+    pos.xyz = pos.xyz + LocalVertexOffset.xyz;
+
+    //EvalNormal = ContNormal;
+
+    gl_Position = pos   ;
+}

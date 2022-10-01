@@ -1,0 +1,65 @@
+#version 440 core
+
+layout (quads, equal_spacing, ccw) in;
+
+uniform vec2 PlaneSize;
+uniform vec3 CutterPos;//刀具位置，相当于圆心
+uniform float R;//球头刀半径
+
+
+#define M_PI		3.14159265358979323846
+
+uniform sampler2D PrePosition;
+
+vec3 Multiply(vec3 a,vec3 b){
+     return vec3(a.x * b.x , a.y * b.y , a.z * b.z);
+}
+
+
+void
+main()
+{
+    float u = gl_TessCoord.x;
+    float v = gl_TessCoord.y;
+
+    #define p(i)  gl_in[i].gl_Position
+
+    vec3 pos;
+
+    pos.x = p(0).x + gl_TessCoord.x;
+    pos.y = p(0).y + gl_TessCoord.y;
+    pos.z = p(1).z;
+
+    vec2 TexCoord;
+
+    TexCoord.x = (pos.x) /(2.0f * PlaneSize.x);
+    TexCoord.y = (pos.y) /(2.0f * PlaneSize.y);
+
+    vec3 ModelOffset = vec3(0.0f, 0.0f, 0.0f);
+
+    ModelOffset.x = CutterPos.x - 1.0f + gl_TessCoord.x;
+    ModelOffset.y = CutterPos.y - 1.0f + gl_TessCoord.y;
+    ModelOffset.z = CutterPos.z;
+
+    pos.x = p(0).x + ModelOffset.x;
+    pos.y = p(0).y + ModelOffset.y;
+    pos.z = p(0).z + ModelOffset.z;
+    
+    float k = pow((pos.x - CutterPos.x),2) + pow((pos.y - CutterPos.y),2);
+
+
+    if((R * R - k)  < 0){
+       gl_Position =  vec4(CutterPos,1.0);
+
+       pos.x = CutterPos.x  + (pos.x - CutterPos.x) * R / sqrt( pow((pos.x - CutterPos.x),2) + pow((pos.y - CutterPos.y),2) );
+       pos.y = CutterPos.y  + (pos.y - CutterPos.y) * R / sqrt( pow((pos.x - CutterPos.x),2) + pow((pos.y - CutterPos.y),2) );
+       pos.z =  pos.z + sqrt(k) - R;
+       gl_Position =  vec4(pos,1.0); 
+       return;
+    }
+
+    pos.z = CutterPos.z - sqrt(R * R - k);
+   //pos.z = min(CutterPos.z - sqrt(R * R - k),texture(PrePosition, TexCoord).b);
+    gl_Position = vec4(pos,1.0) ;
+
+}
